@@ -1,193 +1,262 @@
-import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import { Flame, ZoomIn, ZoomOut, RotateCcw, CloudRain, Sun } from 'lucide-react';
-import { Eatery, WeatherData } from '../types';
+import React from 'react';
+import {
+  CloudRain,
+  Sun,
+  Cloud,
+  Thermometer,
+  Droplets,
+  Wind,
+  Flame,
+  AlertTriangle,
+  RefreshCw,
+  Sparkles,
+  Coffee,
+  Volume2
+} from 'lucide-react';
+import { WeatherCondition, WeatherData, WeatherImpactSummary } from '../types';
 import { soundFx } from '../utils/audio';
 
-// Import Leaflet CSS (crucial for proper marker rendering)
-import 'leaflet/dist/leaflet.css';
-
-interface KuchingInteractiveMapProps {
-  eateries: Eatery[];
-  selectedEatery: Eatery | null;
-  onSelectEatery: (eatery: Eatery) => void;
-  userFaction: 'kolok' | 'laksa';
+interface KuchingWeatherRadarWidgetProps {
   weather?: WeatherData;
+  impactSummary?: WeatherImpactSummary;
+  onSelectCondition: (condition: WeatherCondition) => void;
+  onToggleAutoSim: () => void;
+  isSimulating: boolean;
 }
 
-// Component to handle programmatic map view updates
-const MapViewController: { center: [number, number]; zoom: number } => {
-  const map = useMap();
-  useEffect(() => {
-    map.setView([1.5533, 110.3592], map.getZoom()); // Kuching Center coordinates
-  }, [map]);
-  return null;
-};
-
-export const KuchingInteractiveMap: React.FC<KuchingInteractiveMapProps> = ({
-  eateries,
-  selectedEatery,
-  onSelectEatery,
-  userFaction,
+export const KuchingWeatherRadarWidget: React.FC<KuchingWeatherRadarWidgetProps> = ({
   weather,
+  impactSummary,
+  onSelectCondition,
+  onToggleAutoSim,
+  isSimulating,
 }) => {
-  const [showHeatmap, setShowHeatmap] = useState(true);
-
-  // Custom HTML markers matching your brutalist design system
-  const createCustomIcon = (eatery: Eatery) => {
-    const isSelected = selectedEatery?.id === eatery.id;
-    const bgCol =
-      eatery.faction === 'kolok'
-        ? '#FFB300'
-        : eatery.faction === 'laksa'
-        ? '#E53935'
-        : '#10B981';
-    const emoji = eatery.faction === 'kolok' ? '🥢' : eatery.faction === 'laksa' ? '🍤' : '🤝';
-
-    return L.divIcon({
-      className: 'custom-brutal-marker',
-      html: `
-        <div style="
-          position: relative;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: ${isSelected ? '42px' : '34px'};
-          height: ${isSelected ? '42px' : '34px'};
-          background-color: ${bgCol};
-          color: #2D2424;
-          border: 3px solid #2D2424;
-          border-radius: 12px;
-          font-weight: 900;
-          font-size: ${isSelected ? '18px' : '14px'};
-          box-shadow: 3px 3px 0px #2D2424;
-          transform: ${isSelected ? 'scale(1.15)' : 'scale(1)'};
-          transition: all 0.2s ease;
-        ">
-          ${emoji}
-          ${eatery.fomoIndex >= 95 ? '<span style="position: absolute; -top: -6px; -right: -6px; background: #E53935; color: white; font-size: 8px; padding: 1px 4px; border-radius: 6px; border: 2px solid #2D2424;">HOT</span>' : ''}
+  // Guard against undefined props during initial load or data fetch
+  if (!weather || !impactSummary) {
+    return (
+      <section className="relative overflow-hidden rounded-[28px] border-4 border-[#2D2424] bg-[#FFF8E1] p-4 text-[#2D2424] shadow-brutal">
+        <div className="flex items-center justify-center py-6 text-sm font-black">
+          Loading weather radar...
         </div>
-      `,
-      iconSize: [38, 38],
-      iconAnchor: [19, 19],
-    });
+      </section>
+    );
+  }
+
+  const isRainy = weather.condition === 'rainy';
+  const isSunny = weather.condition === 'sunny';
+
+  const handleConditionClick = (condition: WeatherCondition) => {
+    if (condition === 'rainy') {
+      soundFx.playRainSound();
+    } else if (condition === 'sunny') {
+      soundFx.playSunnySound();
+    } else {
+      soundFx.playWeatherShift();
+    }
+    onSelectCondition(condition);
   };
 
   return (
-    <div id="kuching-live-map-card" className="relative flex flex-col overflow-hidden rounded-[32px] border-4 border-[#2D2424] bg-stone-900 text-stone-100 shadow-brutal-lg">
-      {/* Top Map Controls */}
-      <div className="relative z-25 flex flex-wrap items-center justify-between gap-3 border-b-2 border-[#2D2424] bg-[#2D2424] px-4 py-3 sm:px-5">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 text-emerald-400 border border-white/20 text-base">
-            🗺️
-          </span>
-          <div>
-            <h3 className="text-sm font-black text-white sm:text-base">
-              KUCHING GIS FOODIE CARTOGRAPHY &amp; LIVE HEATMAP
-            </h3>
-            <p className="text-[11px] font-bold text-white/70">
-              Real OpenStreetMap Vector Integration: Live Sarawak River Basin Faction Densities.
-            </p>
-          </div>
-        </div>
+    <section
+      id="kuching-weather-craving-engine"
+      className="relative overflow-hidden rounded-[28px] border-4 border-[#2D2424] bg-[#FFF8E1] p-4 text-[#2D2424] shadow-brutal transition-all sm:p-5"
+    >
+      {/* Dynamic atmospheric ambient glow behind the widget */}
+      <div
+        className={`pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full blur-3xl opacity-25 transition-all duration-700 ${
+          isRainy ? 'bg-[#E53935]' : isSunny ? 'bg-[#FFB300]' : 'bg-sky-400'
+        }`}
+      />
 
-        <div className="flex items-center gap-2">
-          {/* Heatmap/Density Toggle */}
-          <button
-            id="toggle-heatmap-btn"
-            onClick={() => {
-              soundFx.playTick(500);
-              setShowHeatmap(!showHeatmap);
-            }}
-            className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-black transition-all border-2 ${
-              showHeatmap
-                ? 'bg-[#E53935] text-white border-white shadow-xs'
-                : 'bg-stone-800 text-stone-300 border-transparent hover:bg-stone-700'
-            }`}
-          >
-            <Flame className="h-3.5 w-3.5" />
-            <span>FACTION INTENSITY: {showHeatmap ? 'ON' : 'OFF'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Leaflet Map Canvas Container */}
-      <div className="relative h-[400px] sm:h-[480px] w-full overflow-hidden bg-stone-950 z-10">
-        <MapContainer
-          center={[1.5533, 110.3592]} // Kuching City Center coordinates
-          zoom={13}
-          scrollWheelZoom={false}
-          style={{ height: '100%', width: '100%', background: '#12161f' }}
-        >
-          {/* CartoDB Dark Matter Real Map Tile Layer (Sleek, dark, production-grade map tiles) */}
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-            maxZoom={19}
-          />
-
-          <MapViewController center={[1.5533, 110.3592]} zoom={13} />
-
-          {/* Render Real Markers for Eateries */}
-          {eateries.map((eatery) => {
-            // Fallback coordinate mapping if lat/lng are missing in mock database
-            const lat = eatery.lat ?? 1.5533 + (eatery.coordinates.y - 450) * 0.0001;
-            const lng = eatery.lng ?? 110.3592 + (eatery.coordinates.x - 500) * 0.0001;
-
-            return (
-              <Marker
-                key={eatery.id}
-                position={[lat, lng]}
-                icon={createCustomIcon(eatery)}
-                eventHandlers={{
-                  click: () => {
-                    soundFx.playTick(600);
-                    onSelectEatery(eatery);
-                  },
-                }}
-              >
-                <Popup className="custom-leaflet-popup">
-                  <div className="p-2 text-[#2D2424] font-sans">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-[#2D2424] text-white uppercase">
-                        {eatery.faction}
-                      </span>
-                      <span className="text-xs font-black text-rose-600">🔥 {eatery.fomoIndex}% FOMO</span>
-                    </div>
-                    <h4 className="font-black text-sm">{eatery.name}</h4>
-                    <p className="text-[11px] font-bold text-stone-600 mt-0.5">{eatery.address || 'Kuching Sarawak'}</p>
-                  </div>
-                </Popup>
-              </Marker>
-            );
-          })}
-        </MapContainer>
-
-        {/* Floating Map Legend Overlay */}
-        <div className="pointer-events-none absolute bottom-3 left-3 z-[400] flex flex-wrap items-center gap-2 rounded-xl bg-[#2D2424] px-3.5 py-2 border-2 border-white/20 text-[10px] font-black text-white shadow-brutal-sm">
-          {weather && (
-            <div className={`flex items-center gap-1 rounded-lg px-2 py-0.5 border border-white/20 ${
-              weather.condition === 'rainy' ? 'bg-[#E53935] text-white' : 'bg-[#FFB300] text-[#2D2424]'
-            }`}>
-              {weather.condition === 'rainy' ? <CloudRain className="h-3 w-3" /> : <Sun className="h-3 w-3" />}
-              <span>{weather.condition === 'rainy' ? 'Rain Laksa Surge Active' : 'Sun Kolok Rush Active'}</span>
+      <div className="relative z-10 flex flex-col gap-3.5">
+        {/* Top bar: title, live weather tag, API condition controls */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-[#2D2424]/20 pb-3">
+          <div className="flex items-center gap-3">
+            <div
+              className={`flex h-12 w-12 items-center justify-center rounded-2xl text-2xl shadow-brutal-sm border-2 border-[#2D2424] transition-transform ${
+                isRainy
+                  ? 'bg-[#E53935] text-white animate-bounce'
+                  : isSunny
+                  ? 'bg-[#FFB300] text-[#2D2424] rotate-12'
+                  : 'bg-white text-sky-600'
+              }`}
+            >
+              {isRainy ? '🌧️' : isSunny ? '☀️' : '☁️'}
             </div>
-          )}
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#FFB300] border border-[#2D2424]" />
-            <span>Team Kolok</span>
+
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-[#2D2424] px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#FFB300]">
+                  KUCHING WEATHER API
+                </span>
+                <span className="rounded-full border border-[#2D2424] bg-white px-2.5 py-0.5 text-[10px] font-black text-[#2D2424] flex items-center gap-1 shadow-2xs">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+                  LIVE CRAVING ENGINE
+                </span>
+              </div>
+              <h3 className="mt-0.5 text-base font-black tracking-tight text-[#2D2424] sm:text-lg">
+                {weather.localNickname}
+              </h3>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#E53935] border border-[#2D2424]" />
-            <span>Team Laksa</span>
+
+          {/* Direct Weather Condition Switcher Buttons */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] font-black uppercase text-[#2D2424] mr-1 hidden md:inline">
+              Simulate Weather:
+            </span>
+
+            <button
+              id="weather-toggle-rainy"
+              onClick={() => handleConditionClick('rainy')}
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-black transition-all border-2 border-[#2D2424] ${
+                isRainy
+                  ? 'bg-[#E53935] text-white shadow-brutal-sm scale-105'
+                  : 'bg-white text-[#2D2424] hover:bg-rose-50'
+              }`}
+              title="Trigger Rainy Weather & Laksa Craving Surge"
+            >
+              <CloudRain className="h-3.5 w-3.5" />
+              <span>🌧️ Rainy (Laksa Surge)</span>
+            </button>
+
+            <button
+              id="weather-toggle-sunny"
+              onClick={() => handleConditionClick('sunny')}
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-black transition-all border-2 border-[#2D2424] ${
+                isSunny
+                  ? 'bg-[#FFB300] text-[#2D2424] shadow-brutal-sm scale-105'
+                  : 'bg-white text-[#2D2424] hover:bg-amber-50'
+              }`}
+              title="Trigger Sunny Weather & Kolok Craving Surge"
+            >
+              <Sun className="h-3.5 w-3.5" />
+              <span>☀️ Sunny (Kolok Rush)</span>
+            </button>
+
+            <button
+              id="weather-toggle-cloudy"
+              onClick={() => handleConditionClick('cloudy')}
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-black transition-all border-2 border-[#2D2424] ${
+                weather.condition === 'cloudy'
+                  ? 'bg-[#2D2424] text-white shadow-brutal-sm'
+                  : 'bg-white text-[#2D2424] hover:bg-stone-100'
+              }`}
+              title="Equilibrium Weather"
+            >
+              <Cloud className="h-3.5 w-3.5" />
+              <span>☁️ Overcast</span>
+            </button>
+
+            <button
+              id="weather-toggle-auto"
+              onClick={() => {
+                soundFx.playTick(600);
+                onToggleAutoSim();
+              }}
+              className={`flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-[11px] font-black transition-all border-2 border-[#2D2424] ${
+                isSimulating
+                  ? 'bg-emerald-500 text-white shadow-brutal-sm'
+                  : 'bg-white text-[#2D2424] opacity-80 hover:opacity-100'
+              }`}
+              title="Toggle Auto Weather Cycling"
+            >
+              <RefreshCw className={`h-3 w-3 ${isSimulating ? 'animate-spin' : ''}`} />
+              <span>{isSimulating ? 'AUTO: ON' : 'AUTO: OFF'}</span>
+            </button>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 border border-[#2D2424]" />
-            <span>Compromise Sanctuary</span>
+        </div>
+
+        {/* Live Weather Metrics Chips */}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="flex items-center gap-2 rounded-xl border-2 border-[#2D2424] bg-white p-2.5 shadow-2xs">
+            <Thermometer className={`h-4 w-4 ${isSunny ? 'text-[#E53935]' : 'text-sky-600'}`} />
+            <div>
+              <span className="block text-[9px] font-black uppercase text-[#2D2424]/60">TEMP</span>
+              <span className="text-sm font-black text-[#2D2424]">{weather.tempC}°C</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 rounded-xl border-2 border-[#2D2424] bg-white p-2.5 shadow-2xs">
+            <Droplets className="h-4 w-4 text-sky-500" />
+            <div>
+              <span className="block text-[9px] font-black uppercase text-[#2D2424]/60">HUMIDITY</span>
+              <span className="text-sm font-black text-[#2D2424]">{weather.humidityPct}%</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 rounded-xl border-2 border-[#2D2424] bg-white p-2.5 shadow-2xs">
+            <Wind className="h-4 w-4 text-emerald-600" />
+            <div>
+              <span className="block text-[9px] font-black uppercase text-[#2D2424]/60">WIND</span>
+              <span className="text-sm font-black text-[#2D2424]">{weather.windKmH} km/h</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 rounded-xl border-2 border-[#2D2424] bg-white p-2.5 shadow-2xs">
+            <Coffee className="h-4 w-4 text-[#FFB300]" />
+            <div className="min-w-0">
+              <span className="block text-[9px] font-black uppercase text-[#2D2424]/60 truncate">DRINK PAIRING</span>
+              <span className="text-xs font-black text-[#2D2424] truncate block">
+                {weather.recommendedDrink.split('&')[0]}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* The Dynamic Craving Surge Highlight Banner */}
+        <div
+          className={`relative overflow-hidden rounded-2xl border-3 border-[#2D2424] p-3.5 sm:p-4 transition-all shadow-brutal-sm ${
+            isRainy
+              ? 'bg-[#E53935] text-white'
+              : isSunny
+              ? 'bg-[#FFB300] text-[#2D2424]'
+              : 'bg-white text-[#2D2424]'
+          }`}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex-1 min-w-[240px]">
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-[#2D2424] px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-white border border-white/30">
+                  {isRainy ? '🌧️ CRAVING SURGE: TEAM LAKSA' : isSunny ? '☀️ CRAVING SURGE: TEAM KOLOK' : '☁️ BALANCED CRAVING'}
+                </span>
+                <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-[#2D2424] shadow-2xs">
+                  {isRainy ? '+22% FOMO BOOST' : isSunny ? '+20% FOMO BOOST' : 'BASE RATINGS'}
+                </span>
+              </div>
+
+              <h4 className="mt-1 text-sm font-black tracking-tight sm:text-base">
+                {weather.cravingHeadline}
+              </h4>
+              <p className="mt-1 text-xs font-bold leading-relaxed opacity-95">
+                {weather.cravingDescription}
+              </p>
+            </div>
+
+            {/* Quick Faction FOMO comparison chip */}
+            <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 shrink-0 bg-white/90 p-2.5 rounded-xl border-2 border-[#2D2424] text-[#2D2424]">
+              <div className="text-left sm:text-right">
+                <span className="text-[10px] font-black block uppercase text-[#2D2424]/70">LAKSA AVG FOMO</span>
+                <span className={`text-base font-black ${isRainy ? 'text-[#E53935]' : 'text-[#2D2424]'}`}>
+                  {impactSummary.laksaAvgFomo}% {isRainy ? '🔺 SURGING' : ''}
+                </span>
+              </div>
+              <div className="text-left sm:text-right border-l-2 sm:border-l-0 sm:border-t-2 border-[#2D2424]/20 pl-2 sm:pl-0 sm:pt-1">
+                <span className="text-[10px] font-black block uppercase text-[#2D2424]/70">KOLOK AVG FOMO</span>
+                <span className={`text-base font-black ${isSunny ? 'text-[#FFB300]' : 'text-[#2D2424]'}`}>
+                  {impactSummary.kolokAvgFomo}% {isSunny ? '🔺 SURGING' : ''}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Stock & Broth depletion notice */}
+          <div className="mt-3 flex items-center gap-2 border-t-2 border-[#2D2424]/20 pt-2.5 text-xs font-black">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span className="leading-snug">{weather.stockDepletionAlert}</span>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 };

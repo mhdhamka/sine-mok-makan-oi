@@ -1,16 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Radio,
-  Map as MapIcon,
-  RotateCw,
-  Flame,
-  Users,
-  Award,
-  Sparkles,
-  Shield,
-  Volume2,
-  VolumeX,
-  Compass,
   PlusCircle,
   Clock,
   Car,
@@ -28,8 +17,7 @@ import {
   ActiveQuest,
   KolokStyle,
   SavedCoupon,
-  WeatherData,
-  WeatherImpactSummary
+  WeatherData
 } from './types';
 import {
   INITIAL_EATERIES,
@@ -54,6 +42,26 @@ import { KuchingWeatherRadarWidget } from './components/KuchingWeatherRadarWidge
 export default function App() {
   // App view modes
   const [activeTab, setActiveTab] = useState<'radar' | 'map' | 'wheel' | 'fomo'>('radar');
+
+  // Malaysia Standard Time (MYT) live clock state
+  const [mytTimeString, setMytTimeString] = useState<string>('');
+
+  useEffect(() => {
+    const updateMytTime = () => {
+      const options: Intl.DateTimeFormatOptions = {
+        timeZone: 'Asia/Kuala_Lumpur',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      };
+      setMytTimeString(new Intl.DateTimeFormat('en-US', options).format(new Date()));
+    };
+
+    updateMytTime();
+    const timer = setInterval(updateMytTime, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Weather simulation state
   const [weather, setWeather] = useState<WeatherData>(() => weatherApi.getCurrentWeatherData());
@@ -82,11 +90,6 @@ export default function App() {
     if (!selectedEatery) return activeEateries[0] || null;
     return activeEateries.find((e) => e.id === selectedEatery.id) || activeEateries[0] || null;
   }, [selectedEatery, activeEateries]);
-
-  // Live weather impact summary
-  const weatherImpact = useMemo(() => {
-    return weatherApi.calculateImpactSummary(activeEateries, weather);
-  }, [activeEateries, weather]);
 
   // Turf War Scores
   const [kolokScore, setKolokScore] = useState<number>(() => {
@@ -120,7 +123,7 @@ export default function App() {
   });
 
   // Badges
-  const [badges, setBadges] = useState<Badge[]>(INITIAL_BADGES);
+  const [badges] = useState<Badge[]>(INITIAL_BADGES);
 
   // Live feed
   const [liveEvents, setLiveEvents] = useState<LiveCheckinEvent[]>(() => {
@@ -166,7 +169,6 @@ export default function App() {
   }, [activeQuest]);
 
   // City-wide atmospheric tint calculation
-  const totalVotes = kolokScore + laksaScore;
   const isKolokLeading = kolokScore >= laksaScore;
 
   // Lock in Squad Quest handler
@@ -331,8 +333,8 @@ export default function App() {
     <div
       className={`min-h-screen transition-colors duration-700 ${
         isKolokLeading
-          ? 'bg-[#fdfaf3] text-stone-900' // Savory golden-oil warm tint
-          : 'bg-[#fdf5f5] text-stone-900' // Spicy sambal-red warm tint
+          ? 'bg-[#fdfaf3] text-stone-900'
+          : 'bg-[#fdf5f5] text-stone-900'
       }`}
     >
       {/* Top Ambient Turf Glow */}
@@ -345,22 +347,22 @@ export default function App() {
       {/* Main Container */}
       <div className="relative z-10 mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6 space-y-4 sm:space-y-6">
         {/* Navigation Bar */}
-        <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-stone-200/80 bg-white/90 p-3.5 shadow-xs backdrop-blur-md sm:p-4">
+        <header className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border-4 border-[#2D2424] bg-white/95 p-3.5 shadow-brutal-sm backdrop-blur-md sm:p-4">
           {/* Logo & Culture Tagline */}
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-stone-900 text-2xl text-white shadow-sm">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#2D2424] text-2xl text-white shadow-xs">
               🍜
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="font-serif text-lg font-bold tracking-tight text-stone-900 sm:text-xl">
+                <h1 className="font-serif text-lg font-black tracking-tight text-[#2D2424] sm:text-xl">
                   Sine Mok Makan Oi?
                 </h1>
                 <span className="hidden sm:inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-amber-900 border border-amber-300">
                   Kuching Food Hunt
                 </span>
               </div>
-              <p className="text-xs text-stone-500">
+              <p className="text-xs font-bold text-stone-500">
                 The FOMO Radar, Turf War &amp; Indecision Bailout Game
               </p>
             </div>
@@ -398,7 +400,7 @@ export default function App() {
                 soundFx.playTick(550);
                 setIsSquadModalOpen(true);
               }}
-              className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-bold text-stone-800 transition-all hover:bg-stone-100 active:scale-95 shadow-2xs"
+              className="flex items-center gap-1.5 rounded-xl border-2 border-[#2D2424] bg-stone-50 px-3 py-1.5 text-xs font-black text-[#2D2424] transition-all hover:bg-stone-100 active:scale-95 shadow-brutal-sm"
             >
               <Car className="h-3.5 w-3.5 text-amber-600" />
               <span>Car Squad (4)</span>
@@ -411,12 +413,12 @@ export default function App() {
                 soundFx.playTick(600);
                 setIsProfileModalOpen(true);
               }}
-              className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-1.5 text-xs font-semibold text-stone-800 transition-all hover:bg-stone-50 active:scale-95 shadow-2xs"
+              className="flex items-center gap-2 rounded-xl border-2 border-[#2D2424] bg-white px-3 py-1.5 text-xs font-bold text-[#2D2424] transition-all hover:bg-stone-50 active:scale-95 shadow-brutal-sm"
             >
               <span className="text-base">{profile.avatarEmoji}</span>
               <div className="hidden sm:flex flex-col text-left leading-none">
-                <span className="font-bold text-stone-900">{profile.tierTitle}</span>
-                <span className="text-[10px] text-stone-400">Lvl {profile.level} • {profile.savedCoupons.length} Perks</span>
+                <span className="font-black text-stone-900">{profile.tierTitle}</span>
+                <span className="text-[10px] text-stone-500">Lvl {profile.level} • {profile.savedCoupons.length} Perks</span>
               </div>
             </button>
 
@@ -427,7 +429,7 @@ export default function App() {
                 soundFx.playTick(650);
                 setIsCheckinModalOpen(true);
               }}
-              className="flex items-center gap-1.5 rounded-xl bg-stone-900 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition-all hover:bg-stone-800 active:scale-95"
+              className="flex items-center gap-1.5 rounded-xl bg-[#2D2424] px-3.5 py-1.5 text-xs font-black text-white shadow-brutal-sm border-2 border-[#2D2424] transition-all hover:bg-black active:scale-95"
             >
               <PlusCircle className="h-3.5 w-3.5 text-amber-400" />
               <span className="hidden sm:inline">Check In Here</span>
@@ -467,23 +469,22 @@ export default function App() {
           />
         )}
 
-        {/* Feature View Navigation Tabs */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200/80 pb-2">
-          <div className="flex flex-wrap items-center gap-1.5">
+        {/* Modernized Streamlined Navigation Tabs & MYT Clock Sub-bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-[#2D2424] bg-white p-2.5 shadow-brutal-sm">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               id="view-tab-radar"
               onClick={() => {
                 soundFx.playTick(500);
                 setActiveTab('radar');
               }}
-              className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+              className={`px-4 py-2 text-xs font-black rounded-xl border-2 transition-all ${
                 activeTab === 'radar'
-                  ? 'bg-stone-900 text-white shadow-xs'
-                  : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200/60'
+                  ? 'bg-[#2D2424] text-white border-[#2D2424] shadow-brutal-sm'
+                  : 'bg-white text-[#2D2424] border-[#2D2424] hover:bg-stone-100'
               }`}
             >
-              <Radio className="h-3.5 w-3.5 text-emerald-400" />
-              <span>"Sine Mok Makan" Radar</span>
+              Radar
             </button>
 
             <button
@@ -492,14 +493,13 @@ export default function App() {
                 soundFx.playTick(550);
                 setActiveTab('map');
               }}
-              className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+              className={`px-4 py-2 text-xs font-black rounded-xl border-2 transition-all ${
                 activeTab === 'map'
-                  ? 'bg-stone-900 text-white shadow-xs'
-                  : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200/60'
+                  ? 'bg-[#2D2424] text-white border-[#2D2424] shadow-brutal-sm'
+                  : 'bg-white text-[#2D2424] border-[#2D2424] hover:bg-stone-100'
               }`}
             >
-              <MapIcon className="h-3.5 w-3.5 text-sky-400" />
-              <span>Kuching Map &amp; Crowd Heatmap</span>
+              Map &amp; Heatmap
             </button>
 
             <button
@@ -508,14 +508,13 @@ export default function App() {
                 soundFx.playTick(600);
                 setActiveTab('wheel');
               }}
-              className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+              className={`px-4 py-2 text-xs font-black rounded-xl border-2 transition-all ${
                 activeTab === 'wheel'
-                  ? 'bg-stone-900 text-white shadow-xs'
-                  : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200/60'
+                  ? 'bg-[#2D2424] text-white border-[#2D2424] shadow-brutal-sm'
+                  : 'bg-white text-[#2D2424] border-[#2D2424] hover:bg-stone-100'
               }`}
             >
-              <RotateCw className="h-3.5 w-3.5 text-amber-400" />
-              <span>"Bailout" Spin-the-Wheel</span>
+              Spin Wheel
             </button>
 
             <button
@@ -524,20 +523,19 @@ export default function App() {
                 soundFx.playTick(650);
                 setActiveTab('fomo');
               }}
-              className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+              className={`px-4 py-2 text-xs font-black rounded-xl border-2 transition-all ${
                 activeTab === 'fomo'
-                  ? 'bg-stone-900 text-white shadow-xs'
-                  : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200/60'
+                  ? 'bg-[#2D2424] text-white border-[#2D2424] shadow-brutal-sm'
+                  : 'bg-white text-[#2D2424] border-[#2D2424] hover:bg-stone-100'
               }`}
             >
-              <Flame className="h-3.5 w-3.5 text-rose-500" />
-              <span>FOMO Engine &amp; Live Feed</span>
+              FOMO Feed
             </button>
           </div>
 
-          <div className="hidden sm:flex items-center gap-1.5 text-xs text-stone-500 font-mono">
-            <Clock className="h-3.5 w-3.5" />
-            <span>KUCHING LOCAL TIME: 10:45 AM (LAKSA PEAK HOURS)</span>
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 rounded-xl border border-amber-300 text-xs font-mono font-black text-amber-900">
+            <Clock className="h-3.5 w-3.5 text-amber-700 animate-pulse" />
+            <span>MYT (Malaysia Standard Time): {mytTimeString || 'Loading...'}</span>
           </div>
         </div>
 
@@ -584,17 +582,6 @@ export default function App() {
                       <span className="rounded-lg bg-[#2D2424] px-2 py-0.5 text-[10px] font-mono font-black text-[#FFB300]">
                         FOMO {currentSelectedEatery.fomoIndex}%
                       </span>
-                      {currentSelectedEatery.weatherNotice && (
-                        <span className={`rounded-lg px-2 py-0.5 text-[10px] font-black border border-[#2D2424] ${
-                          (currentSelectedEatery.weatherCravingBoost || 0) > 0
-                            ? currentSelectedEatery.faction === 'laksa'
-                              ? 'bg-[#E53935] text-white'
-                              : 'bg-[#FFB300] text-[#2D2424]'
-                            : 'bg-stone-100 text-[#2D2424]'
-                        }`}>
-                          {currentSelectedEatery.weatherNotice}
-                        </span>
-                      )}
                     </div>
                     <p className="text-xs text-[#2D2424]/80 font-bold mt-1">
                       {currentSelectedEatery.area} • <strong>Target Dish:</strong> {currentSelectedEatery.specialtyDish} • ~{currentSelectedEatery.queueWaitMin}m queue
@@ -639,11 +626,11 @@ export default function App() {
         </main>
 
         {/* Footer Cultural Notes */}
-        <footer className="mt-8 border-t border-stone-200/80 pt-4 text-center text-xs text-stone-400">
-          <p className="font-serif italic text-stone-600">
+        <footer className="mt-8 border-t-2 border-[#2D2424]/20 pt-4 text-center text-xs text-stone-500">
+          <p className="font-serif italic text-stone-700 font-bold">
             “Sine mok makan oi?” — The eternal Sarawakian dilemma solved by location radar, brotherhood allegiances, and the sacred compromise of Lau Ya Keng.
           </p>
-          <div className="mt-1 flex flex-wrap justify-center gap-3 text-[11px] text-stone-400">
+          <div className="mt-2 flex flex-wrap justify-center gap-3 text-[11px] font-black text-stone-400">
             <span>Carpenter Street</span>
             <span>•</span>
             <span>Jalan Ban Hock</span>

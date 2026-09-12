@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .bg-dot-pattern {
+    background-image: radial-gradient(#2D2424 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  .shadow-brutal-sm {
+    box-shadow: 3px 3px 0px 0px #2D2424;
+  }
+  .shadow-brutal {
+    box-shadow: 5px 5px 0px 0px #2D2424;
+  }
+  .shadow-brutal-lg {
+    box-shadow: 8px 8px 0px 0px #2D2424;
+  }
+  .shadow-brutal-red {
+    box-shadow: 6px 6px 0px 0px #E53935;
+  }
+  .shadow-brutal-amber {
+    box-shadow: 5px 5px 0px 0px #FFB300;
+  }
+  .shadow-brutal-white {
+    box-shadow: 4px 4px 0px 0px #ffffff;
+  }
+}

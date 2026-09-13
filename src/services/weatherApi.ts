@@ -23,7 +23,7 @@ export const KUCHING_WEATHER_PRESETS: Record<WeatherCondition, WeatherData> = {
     fomoBoostFaction: 'laksa',
     fomoBoostAmount: 22,
     stockDepletionAlert:
-      '⚠️ CRITICAL BROTH DEFICIT: Prawn broth depletion velocity is 2.5x normal! Choon Hui & Chong Chon nearing bottom of the pot!',
+      'CRITICAL BROTH DEFICIT: Prawn broth depletion velocity is 2.5x normal! Choon Hui & Chong Chon nearing bottom of the pot!',
     recommendedDrink: 'Teh Tarik Panas Kaw or Warm Barley',
     updatedAt: 'Just now (Simulated Meteorological Station)',
     isSimulating: false,

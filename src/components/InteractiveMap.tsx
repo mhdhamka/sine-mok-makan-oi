@@ -5,7 +5,6 @@ import { Flame, CloudRain, Sun } from 'lucide-react';
 import { Eatery, WeatherData } from '../types';
 import { soundFx } from '../utils/audio';
 
-// Fix default Leaflet marker icon issue in bundlers (Vite/Webpack)
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 
@@ -17,7 +16,7 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-interface KuchingInteractiveMapProps {
+interface InteractiveMapProps {
   eateries: Eatery[];
   selectedEatery: Eatery | null;
   onSelectEatery: (eatery: Eatery) => void;
@@ -36,7 +35,7 @@ const MapViewController: React.FC<{ selectedEatery: Eatery | null }> = ({ select
   return null;
 };
 
-export const KuchingInteractiveMap: React.FC<KuchingInteractiveMapProps> = ({
+export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   eateries,
   selectedEatery,
   onSelectEatery,

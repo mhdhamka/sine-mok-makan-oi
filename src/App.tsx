@@ -23,7 +23,7 @@ import { weatherApi } from './services/weatherApi';
 
 import { TurfWarBanner } from './components/TurfWarBanner';
 import { RadarScanner } from './components/RadarScanner';
-import { KuchingInteractiveMap } from './components/KuchingInteractiveMap';
+import { InteractiveMap } from './components/InteractiveMap';
 import { BailoutWheel } from './components/BailoutWheel';
 import { FomoHeatmapFeed } from './components/FomoHeatmapFeed';
 import { SquadRoomModal } from './components/SquadRoomModal';
@@ -391,7 +391,7 @@ export default function App() {
 
           {activeTab === 'map' && (
             <div className="space-y-6">
-              <KuchingInteractiveMap
+              <InteractiveMap
                 eateries={activeEateries}
                 selectedEatery={currentSelectedEatery}
                 onSelectEatery={(e) => setSelectedEatery(e)}

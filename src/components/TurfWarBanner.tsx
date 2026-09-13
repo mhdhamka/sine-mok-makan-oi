@@ -51,10 +51,10 @@ export const TurfWarBanner: React.FC<TurfWarBannerProps> = ({
               </div>
               <p className="text-xs font-bold text-[#2D2424]/70">
                 {leader === 'kolok'
-                  ? '🍯 Golden Pork Lard Oil tint sweeps Kuching right now!'
+                  ? 'Golden Pork Lard Oil tint sweeps Kuching right now!'
                   : leader === 'laksa'
-                  ? '🌶️ Spicy Sambal-Red broth hue engulfs the city skyline!'
-                  : '⚖️ Deadlock: Kolok and Laksa forces in holy harmony.'}
+                  ? 'Spicy Sambal-Red broth hue engulfs the city skyline!'
+                  : 'Deadlock: Kolok and Laksa forces in holy harmony.'}
               </p>
             </div>
           </div>

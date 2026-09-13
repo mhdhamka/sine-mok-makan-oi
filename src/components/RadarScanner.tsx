@@ -150,7 +150,7 @@ export const RadarScanner: React.FC<RadarScannerProps> = ({
                 : 'bg-white text-[#2D2424] hover:bg-emerald-50'
             }`}
           >
-            <span>🤝</span> Neutral Compromise
+            Neutral Compromise
           </button>
           <button
             onClick={() => {

@@ -1,7 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
-import { RotateCw, Sparkles, Trophy, Users, ShieldAlert, CheckCircle2, Award, CloudRain, Sun } from 'lucide-react';
-import { Eatery, Faction, WeatherData } from '../types';
+import { Eatery, WeatherData } from '../types';
 import { soundFx } from '../utils/audio';
 
 interface BailoutWheelProps {
@@ -25,6 +24,7 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
   const [compromiseMode, setCompromiseMode] = useState(false);
   const [squadKolokCount, setSquadKolokCount] = useState(2);
   const [squadLaksaCount, setSquadLaksaCount] = useState(2);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   const numSlices = wheelSpots.length;
   const sliceAngle = 360 / numSlices;
@@ -35,10 +35,8 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
     setIsSpinning(true);
     setWinner(null);
 
-    // Play initial sound
     soundFx.playRadarPing();
 
-    // If compromiseMode is activated, skew random landing towards compromise spots (like Lau Ya Keng)
     let targetIndex = targetOverrideIndex !== undefined ? targetOverrideIndex : Math.floor(Math.random() * numSlices);
     if (targetOverrideIndex === undefined && compromiseMode) {
       const compromiseIndices = wheelSpots
@@ -49,15 +47,10 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
       }
     }
 
-    // Number of full rotations (5 to 8) + exact angle to land on target slice
     const extraRounds = 5 + Math.floor(Math.random() * 3);
-    // Needle points at top (270 deg or 90 deg depending on canvas orientation).
-    // Let's align so needle is at 0 deg (top). Target slice offset:
     const targetSliceCenter = targetIndex * sliceAngle + sliceAngle / 2;
-    // We want the wheel rotation to end where top (0 deg) hits targetSliceCenter:
     const finalAngle = rotationAngle + extraRounds * 360 + (360 - (targetSliceCenter % 360));
 
-    // Play tick sounds as it spins
     let ticks = 0;
     const tickInterval = setInterval(() => {
       soundFx.playTick(450 + Math.random() * 200);
@@ -74,7 +67,6 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
       setWinner(selected);
       soundFx.playFanfare();
 
-      // Confetti burst
       try {
         confetti({
           particleCount: 80,
@@ -111,14 +103,6 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
   const runCompromiseAlgorithm = () => {
     setCompromiseMode(true);
     soundFx.playTick(650);
-
-    // Find the best compromise spot
-    const compromiseSpot =
-      wheelSpots.find((e) => e.faction === 'compromise' && e.name.includes('Lau Ya Keng')) ||
-      wheelSpots.find((e) => e.faction === 'compromise') ||
-      wheelSpots[0];
-
-    // Automatically trigger spin targeting compromise!
     spinWheel();
   };
 
@@ -129,9 +113,6 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
         <div className="flex flex-wrap items-start justify-between gap-3 border-b-2 border-[#2D2424]/20 pb-3">
           <div>
             <div className="flex items-center gap-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2D2424] text-base text-white shadow-brutal-sm">
-                🎡
-              </span>
               <h3 className="text-xl font-black text-[#2D2424] sm:text-2xl">
                 THE "BAILOUT" SPIN-THE-WHEEL
               </h3>
@@ -142,10 +123,53 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FFB300] border-2 border-[#2D2424] px-3 py-1 text-xs font-black text-[#2D2424] shadow-2xs">
-              <Users className="h-3.5 w-3.5" /> SQUAD VOTING ACTIVE
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FFB300] border-2 border-[#2D2424] px-3 py-1 text-xs font-black text-[#2D2424] shadow-2xs uppercase tracking-wider">
+              [SQUAD VOTING ACTIVE]
             </span>
           </div>
+        </div>
+
+        {/* Quick Guide Collapsible Panel */}
+        <div className="rounded-2xl border-2 border-[#2D2424] bg-stone-100 shadow-brutal-sm overflow-hidden">
+          <button
+            onClick={() => setIsGuideOpen(!isGuideOpen)}
+            className="w-full flex items-center justify-between p-3.5 bg-stone-100 hover:bg-stone-200 transition-colors text-left"
+          >
+            <div className="flex items-center gap-2">
+              <span className="rounded bg-[#2D2424] px-2 py-0.5 text-[9px] font-black text-white">
+                HELP
+              </span>
+              <span className="text-xs font-black uppercase tracking-wider text-[#2D2424]">
+                [QUICK GUIDE: HOW THE BAILOUT ENGINE WORKS]
+              </span>
+            </div>
+            <span className="text-xs font-black font-mono text-[#2D2424] px-2 py-0.5 border border-[#2D2424] rounded bg-white">
+              {isGuideOpen ? '[-] HIDE' : '[+] SHOW'}
+            </span>
+          </button>
+
+          {isGuideOpen && (
+            <div className="p-4 pt-0 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs font-bold text-[#2D2424]/80 border-t-2 border-[#2D2424]/10 bg-white">
+              <div className="rounded-xl bg-stone-50 p-3 border-2 border-[#2D2424] shadow-2xs mt-3">
+                <span className="block text-[11px] font-black uppercase text-[#E53935] mb-1">
+                  1. Standard Spin
+                </span>
+                Hit the central wheel or standard button to let random physics pick an eatery instantly when your group cannot decide.
+              </div>
+              <div className="rounded-xl bg-stone-50 p-3 border-2 border-[#2D2424] shadow-2xs mt-3">
+                <span className="block text-[11px] font-black uppercase text-[#FFB300] mb-1">
+                  2. Weather Skew
+                </span>
+                The system reads live atmospheric conditions—awarding higher selection weight to hot Sarawak Laksa during rain or springy Mee Kolok during heat waves.
+              </div>
+              <div className="rounded-xl bg-stone-50 p-3 border-2 border-[#2D2424] shadow-2xs mt-3">
+                <span className="block text-[11px] font-black uppercase text-emerald-600 mb-1">
+                  3. Compromise Mode
+                </span>
+                Adjust squad headcounts for competing factions and lock in a peace-treaty venue serving top-tier options for everyone.
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Compromise Engine Sub-panel */}
@@ -153,11 +177,10 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-1">
               <div className="flex items-center gap-1.5">
-                <Sparkles className="h-4 w-4 text-[#FFB300]" />
                 <span className="text-xs font-black uppercase tracking-wider text-[#2D2424]">
                   The "Compromise" Algorithm
                 </span>
-                <span className="rounded-full bg-[#E53935] px-2 py-0.5 text-[9px] font-black text-white">
+                <span className="rounded-full bg-[#E53935] px-2 py-0.5 text-[9px] font-black text-white uppercase">
                   PEACE TREATY
                 </span>
               </div>
@@ -169,7 +192,7 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
             {/* Squad faction tally adjusters */}
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5 rounded-xl bg-white px-3 py-1.5 shadow-brutal-sm border-2 border-[#2D2424] text-xs font-black">
-                <span>🥢 Kolok:</span>
+                <span>KOLOK:</span>
                 <button
                   onClick={() => setSquadKolokCount((c) => Math.max(0, c - 1))}
                   className="h-5 w-5 rounded bg-stone-100 text-xs font-black hover:bg-stone-200 border border-[#2D2424]"
@@ -186,7 +209,7 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
               </div>
 
               <div className="flex items-center gap-1.5 rounded-xl bg-white px-3 py-1.5 shadow-brutal-sm border-2 border-[#2D2424] text-xs font-black">
-                <span>🍤 Laksa:</span>
+                <span>LAKSA:</span>
                 <button
                   onClick={() => setSquadLaksaCount((c) => Math.max(0, c - 1))}
                   className="h-5 w-5 rounded bg-stone-100 text-xs font-black hover:bg-stone-200 border border-[#2D2424]"
@@ -208,7 +231,6 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
                 disabled={isSpinning}
                 className="flex items-center gap-2 rounded-xl bg-[#E53935] px-4 py-2 text-xs font-black text-white border-2 border-[#2D2424] shadow-brutal-sm hover:bg-[#D32F2F] active:scale-95 disabled:opacity-50"
               >
-                <Award className="h-4 w-4" />
                 <span>COMPROMISE LOCK-IN</span>
               </button>
             </div>
@@ -238,7 +260,6 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
                   const endAngle = startAngle + sliceAngle;
                   const midAngle = startAngle + sliceAngle / 2;
 
-                  // Polar to cartesian coordinates
                   const r = 200;
                   const x1 = 200 + r * Math.cos((Math.PI * (startAngle - 90)) / 180);
                   const y1 = 200 + r * Math.sin((Math.PI * (startAngle - 90)) / 180);
@@ -247,7 +268,6 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
 
                   const pathData = `M 200 200 L ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2} Z`;
 
-                  // Colors by faction
                   const fillColor =
                     spot.faction === 'kolok'
                       ? idx % 2 === 0
@@ -259,7 +279,6 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
                         : '#D32F2F'
                       : '#10b981';
 
-                  // Text position
                   const textR = 125;
                   const tx = 200 + textR * Math.cos((Math.PI * (midAngle - 90)) / 180);
                   const ty = 200 + textR * Math.sin((Math.PI * (midAngle - 90)) / 180);
@@ -286,7 +305,7 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
                           fontSize="8.5"
                           fontWeight="800"
                         >
-                          {spot.faction === 'kolok' ? '🥢 Kolok' : spot.faction === 'laksa' ? '🍤 Laksa' : '🤝 Both'}
+                          {spot.faction === 'kolok' ? 'KOLOK' : spot.faction === 'laksa' ? 'LAKSA' : 'NEUTRAL'}
                         </text>
                       </g>
                     </g>
@@ -298,16 +317,16 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
             {/* Central Hub Button */}
             <button
               id="spin-the-wheel-center-btn"
-              onClick={spinWheel}
+              onClick={() => spinWheel()}
               disabled={isSpinning}
               className="group absolute z-20 flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full border-4 border-[#2D2424] bg-[#FFB300] text-[#2D2424] shadow-brutal transition-all hover:scale-105 active:scale-95 disabled:cursor-not-allowed"
             >
               <div className="flex flex-col items-center">
-                <RotateCw
-                  className={`h-5 w-5 sm:h-6 sm:w-6 transition-transform ${isSpinning ? 'animate-spin' : 'group-hover:rotate-45'}`}
-                />
+                <span className={`text-xs font-black transition-transform ${isSpinning ? 'animate-spin' : ''}`}>
+                  [ROT]
+                </span>
                 <span className="text-[10px] font-black uppercase tracking-wider text-[#2D2424]">
-                  {isSpinning ? 'SPINNING' : 'SPIN'}
+                  {isSpinning ? 'SPIN' : 'GO'}
                 </span>
               </div>
             </button>
@@ -315,15 +334,14 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
 
           {/* Weather Craving Advisory Banner */}
           {weather && (
-            <div className={`mt-4 rounded-2xl border-2 border-[#2D2424] p-3 text-center text-xs font-black shadow-2xs ${
+            <div className={`mt-4 rounded-2xl border-2 border-[#2D2424] p-3 text-center text-xs font-black shadow-2xs uppercase tracking-wider ${
               weather.condition === 'rainy'
                 ? 'bg-[#E53935] text-white'
                 : weather.condition === 'sunny'
                 ? 'bg-[#FFB300] text-[#2D2424]'
                 : 'bg-white text-[#2D2424]'
             }`}>
-              <div className="flex items-center justify-center gap-1.5">
-                {weather.condition === 'rainy' ? <CloudRain className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+              <div>
                 <span>
                   WEATHER ADVISORY: {weather.condition === 'rainy'
                     ? 'Cold downpour detected! The Bailout Wheel awards +25% craving weight to warming Sarawak Laksa.'
@@ -341,10 +359,9 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
               id="spin-wheel-bailout-btn"
               onClick={() => spinWheel()}
               disabled={isSpinning}
-              className="flex items-center gap-2 rounded-2xl bg-[#FFB300] hover:bg-[#FFA000] text-[#2D2424] border-2 border-[#2D2424] px-6 py-3 text-xs sm:text-sm font-black shadow-brutal transition-all active:scale-95 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-2xl bg-[#FFB300] hover:bg-[#FFA000] text-[#2D2424] border-2 border-[#2D2424] px-6 py-3 text-xs sm:text-sm font-black shadow-brutal transition-all active:scale-95 disabled:opacity-50 uppercase tracking-wider"
             >
-              <RotateCw className="h-4 w-4" />
-              <span>🎡 STANDARD BAILOUT SPIN</span>
+              <span>STANDARD BAILOUT SPIN</span>
             </button>
 
             {weather && (
@@ -352,22 +369,16 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
                 id="spin-wheel-weather-craving-btn"
                 onClick={spinWithWeatherCraving}
                 disabled={isSpinning}
-                className={`flex items-center gap-2 rounded-2xl border-2 border-[#2D2424] px-6 py-3 text-xs sm:text-sm font-black shadow-brutal transition-all active:scale-95 disabled:opacity-50 ${
+                className={`flex items-center gap-2 rounded-2xl border-2 border-[#2D2424] px-6 py-3 text-xs sm:text-sm font-black shadow-brutal transition-all active:scale-95 disabled:opacity-50 uppercase tracking-wider ${
                   weather.condition === 'rainy'
                     ? 'bg-[#E53935] text-white hover:bg-[#D32F2F]'
                     : 'bg-[#2D2424] text-[#FFB300] hover:bg-black'
                 }`}
               >
                 {weather.condition === 'rainy' ? (
-                  <>
-                    <CloudRain className="h-4 w-4" />
-                    <span>🌧️ SPIN WITH RAIN CRAVING (LAKSA SKEW)</span>
-                  </>
+                  <span>SPIN WITH RAIN CRAVING (LAKSA SKEW)</span>
                 ) : (
-                  <>
-                    <Sun className="h-4 w-4" />
-                    <span>☀️ SPIN WITH SUN CRAVING (KOLOK SKEW)</span>
-                  </>
+                  <span>SPIN WITH SUN CRAVING (KOLOK SKEW)</span>
                 )}
               </button>
             )}
@@ -388,8 +399,8 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-2xl shadow-brutal-sm border-2 border-[#2D2424]">
-                  {winner.faction === 'kolok' ? '🥢' : winner.faction === 'laksa' ? '🍤' : '🤝'}
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-xs font-black shadow-brutal-sm border-2 border-[#2D2424] uppercase">
+                  {winner.faction === 'kolok' ? 'K' : winner.faction === 'laksa' ? 'L' : 'N'}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -416,9 +427,8 @@ export const BailoutWheel: React.FC<BailoutWheelProps> = ({
                     soundFx.playCheckinChime();
                     onLockQuest(winner);
                   }}
-                  className="flex items-center gap-2 rounded-2xl bg-[#E53935] hover:bg-[#D32F2F] px-5 py-2.5 text-xs font-black text-white border-2 border-[#2D2424] shadow-brutal-sm transition-all active:scale-95"
+                  className="flex items-center gap-2 rounded-2xl bg-[#E53935] hover:bg-[#D32F2F] px-5 py-2.5 text-xs font-black text-white border-2 border-[#2D2424] shadow-brutal-sm transition-all active:scale-95 uppercase tracking-wider"
                 >
-                  <Trophy className="h-4 w-4 text-[#FFB300]" />
                   <span>ACCEPT SQUAD QUEST &amp; CLAIM PERKS</span>
                 </button>
               </div>

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { Flame, CloudRain, Sun } from 'lucide-react';
 import { Eatery, WeatherData } from '../types';
+import { INITIAL_EATERIES } from '../data/kuchingEateries'; // Import full list as fallback
 import { soundFx } from '../utils/audio';
 
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -24,62 +24,103 @@ interface InteractiveMapProps {
   weather?: WeatherData;
 }
 
-// Helper component to handle programmatic map view updates when selectedEatery changes
 const MapViewController: React.FC<{ selectedEatery: Eatery | null }> = ({ selectedEatery }) => {
   const map = useMap();
   useEffect(() => {
     if (selectedEatery && selectedEatery.coordinates) {
-      map.setView([1.5533, 110.3592], 14, { animate: true });
+      const lat = selectedEatery.coordinates.lat || 1.5533;
+      const lng = selectedEatery.coordinates.lng || 110.3592;
+      map.setView([lat, lng], 15, { animate: true });
     }
   }, [selectedEatery, map]);
   return null;
 };
 
 export const InteractiveMap: React.FC<InteractiveMapProps> = ({
-  eateries,
+  eateries = [],
   selectedEatery,
   onSelectEatery,
   userFaction,
   weather,
 }) => {
   const [showHeatmap, setShowHeatmap] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedArea, setSelectedArea] = useState<string>('ALL');
+  
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Kuching Center Coordinates
+  const scrollFilters = (direction: 'left' | 'right') => {
+    soundFx.playTick(300);
+    if (scrollContainerRef.current) {
+      const scrollAmount = 200;
+      scrollContainerRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth',
+      });
+    }
+  };
+
   const KUCHING_CENTER: [number, number] = [1.5533, 110.3592];
 
-  // Custom marker factory based on faction
-  const createCustomIcon = (faction: string, isSelected: boolean) => {
+  // FORCE use the full list if the passed prop is truncated or empty
+  const activeEateries = eateries.length >= 15 ? eateries : INITIAL_EATERIES;
+
+  // Dynamically extract unique areas from the complete active list
+  const areas = ['ALL', ...Array.from(new Set(activeEateries.map((e) => e.area)))];
+
+  // Filter eateries based on search query and area filter
+  const filteredEateries = activeEateries.filter((eatery) => {
+    const matchesSearch =
+      eatery.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      eatery.area.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      eatery.specialtyDish.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesArea =
+      selectedArea === 'ALL' ||
+      eatery.area.toLowerCase() === selectedArea.toLowerCase();
+
+    return matchesSearch && matchesArea;
+  });
+
+  const createCustomIcon = (eatery: Eatery, isSelected: boolean, heatmapActive: boolean) => {
+    const faction = eatery.faction;
     const bg = faction === 'kolok' ? '#f59e0b' : faction === 'laksa' ? '#ef4444' : '#10b981';
-    const emoji = faction === 'kolok' ? '🥢' : faction === 'laksa' ? '🍤' : '🤝';
+    const label = faction === 'kolok' ? 'K' : faction === 'laksa' ? 'L' : 'C';
+
+    const fomo = eatery.fomoIndex || 50;
+    const size = heatmapActive ? Math.max(28, Math.min(44, 28 + (fomo / 100) * 16)) : 30;
+    const ringEffect = heatmapActive && fomo > 75 ? 'box-shadow: 0 0 12px 4px rgba(239, 68, 68, 0.8), 0 4px 6px rgba(0,0,0,0.4);' : 'box-shadow: 0 4px 6px rgba(0,0,0,0.4);';
 
     return L.divIcon({
       className: 'custom-brutal-marker',
       html: `
         <div style="
           background-color: ${bg};
-          border: 2px solid #ffffff;
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
+          border: ${heatmapActive ? '3px solid #ffffff' : '2px solid #555555'};
+          width: ${size}px;
+          height: ${size}px;
+          border-radius: 6px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 14px;
-          box-shadow: 0 4px 6px rgba(0,0,0,0.4);
-          transform: ${isSelected ? 'scale(1.25)' : 'scale(1)'};
-          transition: transform 0.2s;
+          font-size: ${heatmapActive ? '14px' : '11px'};
+          font-weight: 900;
+          color: #ffffff;
+          ${ringEffect}
+          transform: ${isSelected ? 'scale(1.3)' : 'scale(1)'};
+          transition: all 0.2s ease-in-out;
+          opacity: ${heatmapActive ? '1.0' : '0.65'};
         ">
-          ${emoji}
+          ${label}
         </div>
       `,
-      iconSize: [32, 32],
-      iconAnchor: [16, 16],
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2],
     });
   };
 
   return (
     <div id="kuching-live-map-card" className="relative flex flex-col overflow-hidden rounded-[32px] border-4 border-[#2D2424] bg-stone-900 text-stone-100 shadow-brutal-lg">
-      {/* Top Map Controls */}
       <div className="relative z-20 flex flex-wrap items-center justify-between gap-3 border-b-2 border-[#2D2424] bg-[#2D2424] px-4 py-3 sm:px-5">
         <div className="flex items-center gap-2.5">
           <div>
@@ -93,7 +134,6 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Heatmap Toggle */}
           <button
             id="toggle-heatmap-btn"
             onClick={() => {
@@ -106,15 +146,82 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                 : 'bg-stone-800 text-stone-300 border-transparent hover:bg-stone-700'
             }`}
           >
-            <Flame className="h-3.5 w-3.5" />
             <span>CROWD HEATMAP: {showHeatmap ? 'ON' : 'OFF'}</span>
           </button>
         </div>
       </div>
 
-      {/* Leaflet Map Container Area */}
+      <div className="flex flex-col gap-2.5 border-b-2 border-[#2D2424] bg-stone-800 px-4 py-3 sm:px-5">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[220px]">
+            <input
+              type="text"
+              placeholder="Search eatery name, area, or specialty..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-xl bg-stone-900 px-3.5 py-2 text-xs font-bold text-white border-2 border-stone-700 focus:border-[#FFB300] focus:outline-none shadow-inner"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-stone-400 hover:text-white"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <div className="text-xs font-black text-stone-400">
+            Showing {filteredEateries.length} of {activeEateries.length} spots
+          </div>
+        </div>
+
+        <div className="relative flex items-center gap-1.5">
+          <button
+            onClick={() => scrollFilters('left')}
+            className="flex-shrink-0 rounded-lg bg-stone-900 px-2 py-1 text-xs font-black text-stone-300 border border-stone-700 hover:bg-stone-700 hover:text-white transition-all shadow-xs"
+            title="Scroll Left"
+          >
+            ‹
+          </button>
+
+          <div
+            ref={scrollContainerRef}
+            className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none scroll-smooth flex-1"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {areas.map((area) => {
+              const isActive = selectedArea === area;
+              return (
+                <button
+                  key={area}
+                  onClick={() => {
+                    soundFx.playTick(400);
+                    setSelectedArea(area);
+                  }}
+                  className={`whitespace-nowrap rounded-lg px-3 py-1 text-[11px] font-black transition-all border ${
+                    isActive
+                      ? 'bg-[#FFB300] text-[#2D2424] border-white shadow-2xs'
+                      : 'bg-stone-900 text-stone-300 border-stone-700 hover:bg-stone-700'
+                  }`}
+                >
+                  {area}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={() => scrollFilters('right')}
+            className="flex-shrink-0 rounded-lg bg-stone-900 px-2 py-1 text-xs font-black text-stone-300 border border-stone-700 hover:bg-stone-700 hover:text-white transition-all shadow-xs"
+            title="Scroll Right"
+          >
+            ›
+          </button>
+        </div>
+      </div>
+
       <div className="relative h-[380px] sm:h-[460px] w-full overflow-hidden bg-[#151922]">
-        {/* Style block to nicely invert standard OSM tiles into a dark mode map theme */}
         <style>{`
           .dark-osm-tiles {
             filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3);
@@ -129,15 +236,13 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         >
           <MapViewController selectedEatery={selectedEatery} />
           
-          {/* OpenStreetMap Free Tile Layer with Dark Mode Filter */}
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             className="dark-osm-tiles"
           />
 
-          {/* Render Eatery Markers */}
-          {eateries.map((eatery) => {
+          {filteredEateries.map((eatery) => {
             const isSelected = selectedEatery?.id === eatery.id;
             
             const lat = eatery.coordinates.lat || KUCHING_CENTER[0] + (eatery.coordinates.y - 400) * 0.0001;
@@ -147,7 +252,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               <Marker
                 key={eatery.id}
                 position={[lat, lng]}
-                icon={createCustomIcon(eatery.faction, isSelected)}
+                icon={createCustomIcon(eatery, isSelected, showHeatmap)}
                 eventHandlers={{
                   click: () => {
                     soundFx.playTick(600);
@@ -158,7 +263,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                 <Popup>
                   <div className="text-stone-900 font-sans p-1">
                     <strong className="block text-sm font-black">{eatery.name}</strong>
-                    <span className="text-xs font-bold text-stone-600">FOMO Index: {eatery.fomoIndex}%</span>
+                    <span className="text-xs font-bold text-stone-600">Area: {eatery.area}</span>
+                    <span className="block text-xs font-bold text-stone-600">FOMO Index: {eatery.fomoIndex}%</span>
+                    {showHeatmap && <span className="block text-[10px] font-black text-red-600 mt-0.5">HEATMAP SURGE ACTIVE</span>}
                   </div>
                 </Popup>
               </Marker>
@@ -166,30 +273,28 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           })}
         </MapContainer>
 
-        {/* Floating Map Legend */}
         <div className="pointer-events-none absolute bottom-3 left-3 z-[1000] flex flex-wrap items-center gap-2 rounded-xl bg-[#2D2424] px-3.5 py-2 border-2 border-white/20 text-[10px] font-black text-white shadow-brutal-sm">
           {weather && (
             <div className={`flex items-center gap-1 rounded-lg px-2 py-0.5 border border-white/20 ${
               weather.condition === 'rainy' ? 'bg-[#E53935] text-white' : 'bg-[#FFB300] text-[#2D2424]'
             }`}>
-              {weather.condition === 'rainy' ? <CloudRain className="h-3 w-3" /> : <Sun className="h-3 w-3" />}
-              <span>{weather.condition === 'rainy' ? 'Rain Craving Surge Active' : 'Sun Craving Peak Active'}</span>
+              <span>{weather.condition === 'rainy' ? 'RAIN SURGE ACTIVE' : 'SUN PEAK ACTIVE'}</span>
             </div>
           )}
           <div className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-[#FFB300] border border-[#2D2424]" />
-            <span>Team Kolok</span>
+            <span>TEAM KOLOK</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-[#E53935] border border-[#2D2424]" />
-            <span>Team Laksa</span>
+            <span>TEAM LAKSA</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 border border-[#2D2424]" />
-            <span>Compromise Sanctuary</span>
+            <span>SANCTUARY</span>
           </div>
           <div className="flex items-center gap-1 text-white/60">
-            <span>• Tap pin to inspect</span>
+            <span>[HEATMAP: {showHeatmap ? 'ACTIVE' : 'MUTED'}]</span>
           </div>
         </div>
       </div>

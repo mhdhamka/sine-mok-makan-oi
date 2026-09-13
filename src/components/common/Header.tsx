@@ -2,7 +2,7 @@ import React from 'react';
 import { WeatherData, UserProfile } from '../../types';
 import { soundFx } from '../../utils/audio';
 
-const LAKSA_LOGO_PATH = `${import.meta.env.BASE_URL || '/'}laksa.png`;
+const LAKSA_LOGO_PATH = `${(import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL || '/'}laksa.png`;
 
 interface HeaderProps {
   weather: WeatherData;

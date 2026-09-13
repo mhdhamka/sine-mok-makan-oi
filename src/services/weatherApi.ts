@@ -42,7 +42,7 @@ export const KUCHING_WEATHER_PRESETS: Record<WeatherCondition, WeatherData> = {
     fomoBoostFaction: 'kolok',
     fomoBoostAmount: 20,
     stockDepletionAlert:
-      '☀️ SUN SIZZLE ALERT: Extra crispy lard batches frying on high rotation! Iced Teh C Peng & White Lady shaved ice demand at all-time high.',
+      ' SUN SIZZLE ALERT: Extra crispy lard batches frying on high rotation! Iced Teh C Peng & White Lady shaved ice demand at all-time high.',
     recommendedDrink: 'Teh C Peng Special (3-Layer) & White Lady Shaved Ice',
     updatedAt: 'Just now (Simulated Meteorological Station)',
     isSimulating: false,
@@ -202,16 +202,16 @@ class WeatherService {
           newFomo = Math.min(100, Math.round(baseFomo * 1.16 + 5));
           newQueue = Math.round(baseQueue * 1.35 + 5);
           availabilityStatus = 'high_demand';
-          weatherNotice = '☀️ Sun Peak: +20% Craving Boost • Crispy Lard Frenzy!';
+          weatherNotice = ' Sun Peak: +20% Craving Boost • Crispy Lard Frenzy!';
 
           if (eatery.id === 'sin-lian-shin') {
-            stockNote = '☀️ SUN SIZZLE: Extra crispy rendered lard cubes tossing fast • Teh C Peng frenzy!';
+            stockNote = ' SUN SIZZLE: Extra crispy rendered lard cubes tossing fast • Teh C Peng frenzy!';
           } else if (eatery.id === 'noodle-descendants') {
-            stockNote = '☀️ Midday Sun Rush: Fast curly noodle tosses • High energy kopitiam crowds!';
+            stockNote = ' Midday Sun Rush: Fast curly noodle tosses • High energy kopitiam crowds!';
           } else if (eatery.id === 'hui-sing-hawker') {
-            stockNote = '☀️ Sun Refreshment: Stall 7 Kolo Mee paired with ice cold White Lady dessert!';
+            stockNote = ' Sun Refreshment: Stall 7 Kolo Mee paired with ice cold White Lady dessert!';
           } else {
-            stockNote = '☀️ Sunny Rush: Springy curly noodles & fresh rendered lard oil flying!';
+            stockNote = ' Sunny Rush: Springy curly noodles & fresh rendered lard oil flying!';
           }
         } else if (eatery.faction === 'laksa') {
           // In hot 33°C weather, hot soup dips slightly UNLESS air-conditioned
@@ -219,14 +219,14 @@ class WeatherService {
             boost = +12;
             newFomo = Math.min(96, baseFomo + 8);
             availabilityStatus = 'high_demand';
-            weatherNotice = '☀️ Air-Con Refuge: Ice-chilled dining with premium beef laksa';
+            weatherNotice = ' Air-Con Refuge: Ice-chilled dining with premium beef laksa';
             stockNote = 'Air-conditioned dining hall full • Chilled calamansi drinks surging';
           } else {
             boost = -7;
             newFomo = Math.max(68, baseFomo - 7);
             newQueue = Math.max(8, baseQueue - 5);
             availabilityStatus = 'normal';
-            weatherNotice = '☀️ Hot Midday: Ceiling fans at full speed • Pair with Iced Barley';
+            weatherNotice = ' Hot Midday: Ceiling fans at full speed • Pair with Iced Barley';
             stockNote = 'Open-air fans running • Recommend cold coconut water or iced teh';
           }
         } else {
@@ -234,7 +234,7 @@ class WeatherService {
           boost = +12;
           newFomo = Math.min(98, baseFomo + 5);
           availabilityStatus = 'high_demand';
-          weatherNotice = '☀️ Sun Sanctuary: Kolo Mee Merah & shaved ice dessert combo ready!';
+          weatherNotice = ' Sun Sanctuary: Kolo Mee Merah & shaved ice dessert combo ready!';
           stockNote = 'Red char siu oil noodles tossing fast alongside cold refreshment stalls';
         }
       } else {
@@ -243,7 +243,7 @@ class WeatherService {
         newFomo = baseFomo;
         newQueue = baseQueue;
         availabilityStatus = 'normal';
-        weatherNotice = '☁️ Humid Breeze: Equal demand for both dry noodles & hot broth';
+        weatherNotice = ' Humid Breeze: Equal demand for both dry noodles & hot broth';
       }
 
       return {

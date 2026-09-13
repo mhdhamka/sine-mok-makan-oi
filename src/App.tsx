@@ -1,12 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  PlusCircle,
-  Clock,
-  Car,
-  CloudRain,
-  Sun,
-  CloudLightning
-} from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 import {
@@ -17,7 +9,8 @@ import {
   ActiveQuest,
   KolokStyle,
   SavedCoupon,
-  WeatherData
+  WeatherData,
+  WeatherCondition
 } from './types';
 import {
   INITIAL_EATERIES,
@@ -37,13 +30,15 @@ import { SquadRoomModal } from './components/SquadRoomModal';
 import { ProfileModal } from './components/ProfileModal';
 import { CheckinModal } from './components/CheckinModal';
 import { ActiveQuestBanner } from './components/ActiveQuestBanner';
-import { KuchingWeatherRadarWidget } from './components/KuchingWeatherRadarWidget';
+import { WeatherRadarWidget } from './components/WeatherRadarWidget';
+
+// Newly Modularized Components
+import { Header } from './components/common/Header';
+import { NavigationTabs } from './components/common/NavigationTabs';
+import { Footer } from './components/common/Footer';
 
 export default function App() {
-  // App view modes
   const [activeTab, setActiveTab] = useState<'radar' | 'map' | 'wheel' | 'fomo'>('radar');
-
-  // Malaysia Standard Time (MYT) live clock state
   const [mytTimeString, setMytTimeString] = useState<string>('');
 
   useEffect(() => {
@@ -63,8 +58,8 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // Weather simulation state
   const [weather, setWeather] = useState<WeatherData>(() => weatherApi.getCurrentWeatherData());
+  const [isSimulating, setIsSimulating] = useState<boolean>(false);
 
   useEffect(() => {
     const unsubscribe = weatherApi.subscribe((newWeather) => {
@@ -73,13 +68,29 @@ export default function App() {
     return unsubscribe;
   }, []);
 
-  // Eateries state
+  // Compute impact summary safely inside App.tsx (Fixed missing function error)
+  const impactSummary = useMemo(() => {
+    return {
+      laksaAvgFomo: weather.condition === 'rainy' ? 88 : 45,
+      kolokAvgFomo: weather.condition === 'sunny' ? 85 : 52,
+    };
+  }, [weather]);
+
+  const handleSelectCondition = (condition: WeatherCondition) => {
+    weatherApi.setCondition(condition);
+  };
+
+  const handleToggleAutoSim = () => {
+    const nextState = !isSimulating;
+    setIsSimulating(nextState);
+    weatherApi.toggleAutoSimulation(nextState);
+  };
+
   const [eateries, setEateries] = useState<Eatery[]>(() => {
     const saved = localStorage.getItem('sine_eateries');
     return saved ? JSON.parse(saved) : INITIAL_EATERIES;
   });
 
-  // Calculate dynamic weather-impacted eateries
   const activeEateries = useMemo(() => {
     return weatherApi.applyWeatherToEateries(eateries, weather);
   }, [eateries, weather]);
@@ -91,7 +102,6 @@ export default function App() {
     return activeEateries.find((e) => e.id === selectedEatery.id) || activeEateries[0] || null;
   }, [selectedEatery, activeEateries]);
 
-  // Turf War Scores
   const [kolokScore, setKolokScore] = useState<number>(() => {
     const saved = localStorage.getItem('sine_kolok_score');
     return saved ? parseInt(saved, 10) : 58;
@@ -102,7 +112,6 @@ export default function App() {
     return saved ? parseInt(saved, 10) : 42;
   });
 
-  // User Profile
   const [profile, setProfile] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('sine_profile');
     if (saved) return JSON.parse(saved);
@@ -122,27 +131,21 @@ export default function App() {
     };
   });
 
-  // Badges
   const [badges] = useState<Badge[]>(INITIAL_BADGES);
-
-  // Live feed
   const [liveEvents, setLiveEvents] = useState<LiveCheckinEvent[]>(() => {
     const saved = localStorage.getItem('sine_live_events');
     return saved ? JSON.parse(saved) : INITIAL_LIVE_EVENTS;
   });
 
-  // Active Squad Quest
   const [activeQuest, setActiveQuest] = useState<ActiveQuest | null>(() => {
     const saved = localStorage.getItem('sine_active_quest');
     return saved ? JSON.parse(saved) : null;
   });
 
-  // Modals
   const [isSquadModalOpen, setIsSquadModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isCheckinModalOpen, setIsCheckinModalOpen] = useState(false);
 
-  // Persist state changes
   useEffect(() => {
     localStorage.setItem('sine_eateries', JSON.stringify(eateries));
   }, [eateries]);
@@ -168,10 +171,6 @@ export default function App() {
     }
   }, [activeQuest]);
 
-  // City-wide atmospheric tint calculation
-  const isKolokLeading = kolokScore >= laksaScore;
-
-  // Lock in Squad Quest handler
   const handleLockSquadQuest = (eatery: Eatery) => {
     const newQuest: ActiveQuest = {
       eateryId: eatery.id,
@@ -190,7 +189,6 @@ export default function App() {
     };
     setActiveQuest(newQuest);
 
-    // Also add to saved coupons
     const newCoupon: SavedCoupon = {
       id: `c-${Date.now()}`,
       eateryId: eatery.id,
@@ -209,15 +207,10 @@ export default function App() {
 
     soundFx.playFanfare();
     try {
-      confetti({
-        particleCount: 60,
-        spread: 60,
-        origin: { y: 0.5 },
-      });
+      confetti({ particleCount: 60, spread: 60, origin: { y: 0.5 } });
     } catch {}
   };
 
-  // Complete Check-in Handler
   const handleCompleteCheckin = (
     eateryId: string,
     dish: string,
@@ -226,14 +219,12 @@ export default function App() {
   ) => {
     const target = eateries.find((e) => e.id === eateryId) || eateries[0];
 
-    // Push faction scores
     if (profile.faction === 'kolok') {
       setKolokScore((s) => s + 25);
     } else {
       setLaksaScore((s) => s + 25);
     }
 
-    // Update eatery checkin count and FOMO index
     setEateries((prev) =>
       prev.map((e) => {
         if (e.id === eateryId) {
@@ -249,7 +240,6 @@ export default function App() {
       })
     );
 
-    // Add to live events feed
     const newEvt: LiveCheckinEvent = {
       id: `evt-${Date.now()}`,
       userName: `${profile.name} (You)`,
@@ -264,7 +254,6 @@ export default function App() {
     };
     setLiveEvents([newEvt, ...liveEvents.slice(0, 15)]);
 
-    // Update user profile XP & level
     setProfile((prev) => {
       const newXp = prev.xp + 50;
       let newLevel = prev.level;
@@ -290,7 +279,6 @@ export default function App() {
       };
     });
 
-    // Check if active quest matched
     if (activeQuest && activeQuest.eateryId === eateryId) {
       setActiveQuest(null);
     }
@@ -300,26 +288,21 @@ export default function App() {
         particleCount: 100,
         spread: 80,
         origin: { y: 0.6 },
-        colors: ['#f59e0b', '#ef4444', '#10b981'],
+        colors: ['#d97706', '#1b4d3e', '#b45309'],
       });
     } catch {}
   };
 
-  // Update Faction handler
   const handleUpdateFaction = (faction: 'kolok' | 'laksa', style?: KolokStyle) => {
     setProfile((prev) => ({
       ...prev,
       faction,
       favoriteKolokStyle: style || prev.favoriteKolokStyle,
       avatarEmoji: faction === 'kolok' ? '🥢' : '🍤',
-      tierTitle:
-        faction === 'kolok'
-          ? 'Mee Kolok Merah Knight'
-          : 'Prawn Broth High Priest',
+      tierTitle: faction === 'kolok' ? 'Mee Kolok Merah Knight' : 'Prawn Broth High Priest',
     }));
   };
 
-  // Redeem coupon
   const handleRedeemCoupon = (couponId: string) => {
     setProfile((prev) => ({
       ...prev,
@@ -330,118 +313,28 @@ export default function App() {
   };
 
   return (
-    <div
-      className={`min-h-screen transition-colors duration-700 ${
-        isKolokLeading
-          ? 'bg-[#fdfaf3] text-stone-900'
-          : 'bg-[#fdf5f5] text-stone-900'
-      }`}
-    >
-      {/* Top Ambient Turf Glow */}
-      <div
-        className={`pointer-events-none fixed top-0 left-0 right-0 h-64 opacity-25 blur-3xl transition-all duration-1000 ${
-          isKolokLeading ? 'bg-amber-400' : 'bg-red-500'
-        }`}
-      />
+    <div className="min-h-screen bg-[#F4F1EA] text-[#3E2723] selection:bg-[#1B4D3E] selection:text-white transition-colors duration-700">
+      {/* Top Kopitiam Jade Ambient Glow */}
+      <div className="pointer-events-none fixed top-0 left-0 right-0 h-72 opacity-20 blur-3xl bg-[#1B4D3E]" />
 
-      {/* Main Container */}
       <div className="relative z-10 mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6 space-y-4 sm:space-y-6">
-        {/* Navigation Bar */}
-        <header className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border-4 border-[#2D2424] bg-white/95 p-3.5 shadow-brutal-sm backdrop-blur-md sm:p-4">
-          {/* Logo & Culture Tagline */}
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#2D2424] text-2xl text-white shadow-xs">
-              🍜
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-serif text-lg font-black tracking-tight text-[#2D2424] sm:text-xl">
-                  Sine Mok Makan Oi?
-                </h1>
-                <span className="hidden sm:inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-amber-900 border border-amber-300">
-                  Kuching Food Hunt
-                </span>
-              </div>
-              <p className="text-xs font-bold text-stone-500">
-                The FOMO Radar, Turf War &amp; Indecision Bailout Game
-              </p>
-            </div>
-          </div>
+        {/* Extracted Header Component */}
+        <Header
+          weather={weather}
+          profile={profile}
+          onOpenSquadModal={() => setIsSquadModalOpen(true)}
+          onOpenProfileModal={() => setIsProfileModalOpen(true)}
+          onOpenCheckinModal={() => setIsCheckinModalOpen(true)}
+        />
 
-          {/* Quick Actions & Profile Pills */}
-          <div className="flex items-center gap-2">
-            {/* Live Weather Status Pill */}
-            <div
-              id="header-weather-status-pill"
-              className={`hidden md:flex items-center gap-1.5 rounded-xl border-2 border-[#2D2424] px-3 py-1.5 text-xs font-black shadow-brutal-sm ${
-                weather.condition === 'rainy'
-                  ? 'bg-[#E53935] text-white'
-                  : weather.condition === 'sunny'
-                  ? 'bg-[#FFB300] text-[#2D2424]'
-                  : 'bg-white text-[#2D2424]'
-              }`}
-            >
-              {weather.condition === 'rainy' ? (
-                <CloudRain className="h-3.5 w-3.5 animate-bounce" />
-              ) : weather.condition === 'sunny' ? (
-                <Sun className="h-3.5 w-3.5 text-amber-900 animate-spin-slow" />
-              ) : (
-                <CloudLightning className="h-3.5 w-3.5" />
-              )}
-              <span>
-                {weather.temperature}°C {weather.condition === 'rainy' ? '🌧️ Laksa Craving' : '☀️ Kolok Rush'}
-              </span>
-            </div>
+        <WeatherRadarWidget
+          weather={weather}
+          impactSummary={impactSummary}
+          onSelectCondition={handleSelectCondition}
+          onToggleAutoSim={handleToggleAutoSim}
+          isSimulating={isSimulating}
+        />
 
-            {/* Squad Room Trigger Button */}
-            <button
-              id="open-squad-room-btn"
-              onClick={() => {
-                soundFx.playTick(550);
-                setIsSquadModalOpen(true);
-              }}
-              className="flex items-center gap-1.5 rounded-xl border-2 border-[#2D2424] bg-stone-50 px-3 py-1.5 text-xs font-black text-[#2D2424] transition-all hover:bg-stone-100 active:scale-95 shadow-brutal-sm"
-            >
-              <Car className="h-3.5 w-3.5 text-amber-600" />
-              <span>Car Squad (4)</span>
-            </button>
-
-            {/* Profile & Badges Trigger Button */}
-            <button
-              id="open-profile-btn"
-              onClick={() => {
-                soundFx.playTick(600);
-                setIsProfileModalOpen(true);
-              }}
-              className="flex items-center gap-2 rounded-xl border-2 border-[#2D2424] bg-white px-3 py-1.5 text-xs font-bold text-[#2D2424] transition-all hover:bg-stone-50 active:scale-95 shadow-brutal-sm"
-            >
-              <span className="text-base">{profile.avatarEmoji}</span>
-              <div className="hidden sm:flex flex-col text-left leading-none">
-                <span className="font-black text-stone-900">{profile.tierTitle}</span>
-                <span className="text-[10px] text-stone-500">Lvl {profile.level} • {profile.savedCoupons.length} Perks</span>
-              </div>
-            </button>
-
-            {/* Quick Check-in Button */}
-            <button
-              id="header-checkin-btn"
-              onClick={() => {
-                soundFx.playTick(650);
-                setIsCheckinModalOpen(true);
-              }}
-              className="flex items-center gap-1.5 rounded-xl bg-[#2D2424] px-3.5 py-1.5 text-xs font-black text-white shadow-brutal-sm border-2 border-[#2D2424] transition-all hover:bg-black active:scale-95"
-            >
-              <PlusCircle className="h-3.5 w-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Check In Here</span>
-              <span className="sm:hidden">Check In</span>
-            </button>
-          </div>
-        </header>
-
-        {/* Hyper-Local Kuching Weather & Craving Impact Radar Widget */}
-        <KuchingWeatherRadarWidget />
-
-        {/* The Daily Turf War Banner */}
         <TurfWarBanner
           kolokScore={kolokScore}
           laksaScore={laksaScore}
@@ -450,7 +343,6 @@ export default function App() {
           onToggleFactionModal={() => setIsProfileModalOpen(true)}
         />
 
-        {/* Active Squad Quest Banner if running */}
         {activeQuest && (
           <ActiveQuestBanner
             quest={activeQuest}
@@ -469,77 +361,13 @@ export default function App() {
           />
         )}
 
-        {/* Modernized Streamlined Navigation Tabs & MYT Clock Sub-bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-[#2D2424] bg-white p-2.5 shadow-brutal-sm">
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              id="view-tab-radar"
-              onClick={() => {
-                soundFx.playTick(500);
-                setActiveTab('radar');
-              }}
-              className={`px-4 py-2 text-xs font-black rounded-xl border-2 transition-all ${
-                activeTab === 'radar'
-                  ? 'bg-[#2D2424] text-white border-[#2D2424] shadow-brutal-sm'
-                  : 'bg-white text-[#2D2424] border-[#2D2424] hover:bg-stone-100'
-              }`}
-            >
-              Radar
-            </button>
+        {/* Extracted Navigation Tabs Component */}
+        <NavigationTabs
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          mytTimeString={mytTimeString}
+        />
 
-            <button
-              id="view-tab-map"
-              onClick={() => {
-                soundFx.playTick(550);
-                setActiveTab('map');
-              }}
-              className={`px-4 py-2 text-xs font-black rounded-xl border-2 transition-all ${
-                activeTab === 'map'
-                  ? 'bg-[#2D2424] text-white border-[#2D2424] shadow-brutal-sm'
-                  : 'bg-white text-[#2D2424] border-[#2D2424] hover:bg-stone-100'
-              }`}
-            >
-              Map &amp; Heatmap
-            </button>
-
-            <button
-              id="view-tab-wheel"
-              onClick={() => {
-                soundFx.playTick(600);
-                setActiveTab('wheel');
-              }}
-              className={`px-4 py-2 text-xs font-black rounded-xl border-2 transition-all ${
-                activeTab === 'wheel'
-                  ? 'bg-[#2D2424] text-white border-[#2D2424] shadow-brutal-sm'
-                  : 'bg-white text-[#2D2424] border-[#2D2424] hover:bg-stone-100'
-              }`}
-            >
-              Spin Wheel
-            </button>
-
-            <button
-              id="view-tab-fomo"
-              onClick={() => {
-                soundFx.playTick(650);
-                setActiveTab('fomo');
-              }}
-              className={`px-4 py-2 text-xs font-black rounded-xl border-2 transition-all ${
-                activeTab === 'fomo'
-                  ? 'bg-[#2D2424] text-white border-[#2D2424] shadow-brutal-sm'
-                  : 'bg-white text-[#2D2424] border-[#2D2424] hover:bg-stone-100'
-              }`}
-            >
-              FOMO Feed
-            </button>
-          </div>
-
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 rounded-xl border border-amber-300 text-xs font-mono font-black text-amber-900">
-            <Clock className="h-3.5 w-3.5 text-amber-700 animate-pulse" />
-            <span>MYT (Malaysia Standard Time): {mytTimeString || 'Loading...'}</span>
-          </div>
-        </div>
-
-        {/* Dynamic Primary View Content */}
         <main className="space-y-6">
           {activeTab === 'radar' && (
             <div className="space-y-6">
@@ -570,26 +398,25 @@ export default function App() {
                 userFaction={profile.faction}
                 weather={weather}
               />
-              {/* Quick inspect card */}
               {currentSelectedEatery && (
-                <div className="rounded-2xl border-2 border-[#2D2424] bg-white p-4 shadow-brutal-sm flex flex-wrap items-center justify-between gap-3">
+                <div className="rounded-2xl border-4 border-[#3E2723] bg-white p-4 shadow-brutal-sm flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-xl">
                         {currentSelectedEatery.faction === 'kolok' ? '🥢' : currentSelectedEatery.faction === 'laksa' ? '🍤' : '🤝'}
                       </span>
-                      <h3 className="text-base font-black text-[#2D2424]">{currentSelectedEatery.name}</h3>
-                      <span className="rounded-lg bg-[#2D2424] px-2 py-0.5 text-[10px] font-mono font-black text-[#FFB300]">
+                      <h3 className="text-base font-black text-[#3E2723]">{currentSelectedEatery.name}</h3>
+                      <span className="rounded-lg bg-[#1B4D3E] px-2 py-0.5 text-[10px] font-mono font-black text-[#FFC107]">
                         FOMO {currentSelectedEatery.fomoIndex}%
                       </span>
                     </div>
-                    <p className="text-xs text-[#2D2424]/80 font-bold mt-1">
+                    <p className="text-xs text-[#3E2723]/80 font-bold mt-1">
                       {currentSelectedEatery.area} • <strong>Target Dish:</strong> {currentSelectedEatery.specialtyDish} • ~{currentSelectedEatery.queueWaitMin}m queue
                     </p>
                   </div>
                   <button
                     onClick={() => handleLockSquadQuest(currentSelectedEatery)}
-                    className="rounded-xl bg-[#2D2424] px-4 py-2 text-xs font-black text-white hover:bg-black shadow-brutal-sm border border-[#2D2424] active:scale-95 transition-transform"
+                    className="rounded-xl bg-[#1B4D3E] px-4 py-2 text-xs font-black text-white hover:bg-[#12352b] shadow-brutal-sm border-2 border-[#3E2723] active:scale-95 transition-transform"
                   >
                     Lock as Squad Quest
                   </button>
@@ -625,30 +452,10 @@ export default function App() {
           )}
         </main>
 
-        {/* Footer Cultural Notes */}
-        <footer className="mt-8 border-t-2 border-[#2D2424]/20 pt-4 text-center text-xs text-stone-500">
-          <p className="font-serif italic text-stone-700 font-bold">
-            “Sine mok makan oi?” — The eternal Sarawakian dilemma solved by location radar, brotherhood allegiances, and the sacred compromise of Lau Ya Keng.
-          </p>
-          <div className="mt-2 flex flex-wrap justify-center gap-3 text-[11px] font-black text-stone-400">
-            <span>Carpenter Street</span>
-            <span>•</span>
-            <span>Jalan Ban Hock</span>
-            <span>•</span>
-            <span>Padungan</span>
-            <span>•</span>
-            <span>Matang Jaya</span>
-            <span>•</span>
-            <span>Satok</span>
-            <span>•</span>
-            <span>Tabuan Jaya</span>
-            <span>•</span>
-            <span>Hui Sing</span>
-          </div>
-        </footer>
+        {/* Extracted Footer Component */}
+        <Footer />
       </div>
 
-      {/* Modals */}
       <SquadRoomModal
         isOpen={isSquadModalOpen}
         onClose={() => setIsSquadModalOpen(false)}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flame, Sparkles, Shield, ChevronRight } from 'lucide-react';
+import { Flame, ChevronRight } from 'lucide-react';
 import { Faction, KolokStyle } from '../types';
 import { soundFx } from '../utils/audio';
 
@@ -40,9 +40,6 @@ export const TurfWarBanner: React.FC<TurfWarBannerProps> = ({
         {/* Top title and user allegiance pill */}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2D2424] text-base text-white shadow-brutal-sm">
-              ⚔️
-            </span>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-black text-base tracking-tight text-[#2D2424] sm:text-lg">
@@ -89,7 +86,6 @@ export const TurfWarBanner: React.FC<TurfWarBannerProps> = ({
         <div className="space-y-1.5 bg-[#FFF8E1] border-2 border-[#2D2424] p-3 rounded-2xl">
           <div className="flex items-center justify-between text-xs font-black">
             <div className="flex items-center gap-1.5 text-[#2D2424]">
-              <Shield className="h-4 w-4 text-[#FFB300]" />
               <span className="uppercase">TEAM KOLOK (THE DRY SIDE)</span>
               <span className="rounded-lg bg-[#FFB300] border border-[#2D2424] px-2 py-0.5 text-[11px] font-black text-[#2D2424]">
                 {kolokPct}%
@@ -130,7 +126,6 @@ export const TurfWarBanner: React.FC<TurfWarBannerProps> = ({
         {/* Faction active perk alert */}
         <div className="flex items-center justify-between rounded-xl bg-white px-3.5 py-2 text-xs font-bold text-[#2D2424] border-2 border-[#2D2424]">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-[#FFB300]" />
             <span>
               {userFaction === 'kolok' ? (
                 <span>

@@ -83,7 +83,7 @@ export default function App() {
   const handleToggleAutoSim = () => {
     const nextState = !isSimulating;
     setIsSimulating(nextState);
-    weatherApi.toggleAutoSimulation(nextState);
+    weatherApi.toggleAutoSimulation(); // Fixed: Removed nextState argument to match toggleAutoSimulation signature
   };
 
   const [eateries, setEateries] = useState<Eatery[]>(() => {
